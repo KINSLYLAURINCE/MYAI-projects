@@ -1,0 +1,17 @@
+# Root-level files outside project folders
+AI_Complete_Guide.docx
+AI_Complete_Guide.py
+build_guide.py
+.idea/
+
+# Files exceeding GitHub's 100MB limit
+project 4/fashion-mnist_train.csv
+project 16/mnist_train.csv
+project 19/train_data.csv
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
