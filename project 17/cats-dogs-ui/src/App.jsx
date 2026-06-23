@@ -2,8 +2,8 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { useEffect } from 'react'
 import './App.css'
 
-const API_BASE = 'https://cats-dogs-api-vkit.onrender.com'
-const PING_INTERVAL = 10 * 60 * 1000  // 10 minutes
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000'
+const PING_INTERVAL = 5 * 60 * 1000  // 5 minutes
 
 function KeepAlive() {
   useEffect(() => {

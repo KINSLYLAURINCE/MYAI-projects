@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-const API_BASE = 'https://cats-dogs-api-vkit.onrender.com'
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000'
 
 function formatBytes(bytes) {
   if (bytes < 1024) return bytes + ' B'
@@ -51,7 +51,7 @@ export default function Classify() {
   useEffect(() => {
     const check = async () => {
       try {
-        const res  = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) })
+        const res  = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(60000) })
         const data = await res.json()
         setApiStatus(data.model_loaded ? 'online' : 'offline')
       } catch {
@@ -170,6 +170,7 @@ export default function Classify() {
                       ref={inputRef}
                       type="file"
                       accept="image/*"
+                      style={{ display: 'none' }}
                       onChange={(e) => handleFile(e.target.files[0])}
                     />
                     <div className="dropzone-icon-wrap">
@@ -206,7 +207,7 @@ export default function Classify() {
                 <button
                   className="btn-classify"
                   onClick={predict}
-                  disabled={!file || loading || !isOnline}
+                  disabled={!file || loading || apiStatus === 'offline'}
                 >
                   {loading
                     ? <><span className="spinner" />Analysing...</>
