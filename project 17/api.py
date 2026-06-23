@@ -1,19 +1,21 @@
 import os
 import io
+import threading
+import time
 import numpy as np
 from PIL import Image
 
+import requests
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# ── Config ────────────────────────────────────────────────────────────────────
+
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, 'cats_dogs_model.keras')
 IMG_SIZE   = (160, 160)
 PORT       = int(os.environ.get("PORT", 5000))
 
-# ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Cats vs Dogs Classifier",
     description="Upload an image to classify it as Cat or Dog.",
@@ -33,7 +35,6 @@ state = {
     "status":       "Model not loaded yet."
 }
 
-# ── Load model ────────────────────────────────────────────────────────────────
 def load_model():
     try:
         from tensorflow import keras
@@ -47,19 +48,26 @@ def load_model():
         state["status"]       = f"Failed to load model: {str(e)}"
         print(f"[API] ERROR: {e}")
 
-# ── Startup ───────────────────────────────────────────────────────────────────
+def self_ping():
+    url = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:5000") + "/health"
+    while True:
+        time.sleep(10 * 60)
+        try:
+            requests.get(url, timeout=10)
+        except Exception:
+            pass
+
 @app.on_event("startup")
 def startup():
     load_model()
+    threading.Thread(target=self_ping, daemon=True).start()
 
-# ── Preprocessor ─────────────────────────────────────────────────────────────
 def preprocess(image_bytes: bytes) -> np.ndarray:
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img = img.resize(IMG_SIZE)
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
 @app.get("/health")
 def health():
     return {
@@ -98,7 +106,6 @@ def reload_model():
     load_model()
     return {"status": state["status"], "loaded": state["model_loaded"]}
 
-# ── Run ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("api:app", host="0.0.0.0", port=PORT, reload=False)
