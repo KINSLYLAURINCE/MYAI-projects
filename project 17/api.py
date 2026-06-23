@@ -3,20 +3,15 @@ import io
 import numpy as np
 from PIL import Image
 
-try:
-    import tflite_runtime.interpreter as tflite
-except ImportError:
-    import tensorflow.lite as tflite
-
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH  = os.path.join(BASE_DIR, 'cats_dogs_model.tflite')
-IMG_SIZE    = (160, 160)
-PORT        = int(os.environ.get("PORT", 5000))
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, 'cats_dogs_model.keras')
+IMG_SIZE   = (160, 160)
+PORT       = int(os.environ.get("PORT", 5000))
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -33,25 +28,20 @@ app.add_middleware(
 )
 
 state = {
-    "interpreter": None,
-    "input_index":  None,
-    "output_index": None,
+    "model":        None,
     "model_loaded": False,
     "status":       "Model not loaded yet."
 }
 
-# ── Load TFLite model ─────────────────────────────────────────────────────────
+# ── Load model ────────────────────────────────────────────────────────────────
 def load_model():
     try:
-        print(f"[API] Loading TFLite model from {MODEL_PATH} ...")
-        interpreter = tflite.Interpreter(model_path=MODEL_PATH)
-        interpreter.allocate_tensors()
-        state["interpreter"]  = interpreter
-        state["input_index"]  = interpreter.get_input_details()[0]["index"]
-        state["output_index"] = interpreter.get_output_details()[0]["index"]
+        from tensorflow import keras
+        print(f"[API] Loading model from {MODEL_PATH} ...")
+        state["model"]        = keras.models.load_model(MODEL_PATH)
         state["model_loaded"] = True
         state["status"]       = "Model loaded and ready."
-        print("[API] TFLite model loaded successfully.")
+        print("[API] Model loaded successfully.")
     except Exception as e:
         state["model_loaded"] = False
         state["status"]       = f"Failed to load model: {str(e)}"
@@ -92,11 +82,7 @@ async def predict(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read image: {str(e)}")
 
-    interp = state["interpreter"]
-    interp.set_tensor(state["input_index"], tensor)
-    interp.invoke()
-    prediction = float(interp.get_tensor(state["output_index"])[0][0])
-
+    prediction = float(state["model"].predict(tensor, verbose=0)[0][0])
     label      = "Dog" if prediction > 0.5 else "Cat"
     confidence = prediction if label == "Dog" else 1 - prediction
 
