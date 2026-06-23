@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-const API_BASE = 'http://localhost:5000'
+const API_BASE = 'https://cats-dogs-api-vkit.onrender.com'
 
 function formatBytes(bytes) {
   if (bytes < 1024) return bytes + ' B'

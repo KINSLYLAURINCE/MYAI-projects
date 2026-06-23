@@ -65,7 +65,7 @@ function RequestResponseBlock({ requestChildren, requestText, responseChildren }
   )
 }
 
-const BASE_URL = 'http://localhost:5000'
+const BASE_URL = 'https://cats-dogs-api-vkit.onrender.com'
 
 /* Scroll spy: track which endpoint is active */
 function useScrollSpy(ids) {
@@ -158,11 +158,11 @@ export default function ApiDocs() {
               </div>
               <div className="endpoint-body">
                 <RequestResponseBlock
-                  requestText={`curl http://localhost:5000/health`}
+                  requestText={`curl https://cats-dogs-api-vkit.onrender.com/health`}
                   requestChildren={
                     <>
                       <C t="muted"># Request{'\n'}</C>
-                      <C t="green">curl</C>{' http://localhost:5000/health'}
+                      <C t="green">curl</C>{' https://cats-dogs-api-vkit.onrender.com/health'}
                     </>
                   }
                   responseChildren={
@@ -200,11 +200,11 @@ export default function ApiDocs() {
               </div>
               <div className="endpoint-body">
                 <RequestResponseBlock
-                  requestText={`curl -X POST http://localhost:5000/predict \\\n     -F "file=@my_dog.jpg"`}
+                  requestText={`curl -X POST https://cats-dogs-api-vkit.onrender.com/predict \\\n     -F "file=@my_dog.jpg"`}
                   requestChildren={
                     <>
                       <C t="muted"># cURL{'\n'}</C>
-                      <C t="green">curl</C>{' -X POST http://localhost:5000/predict \\\n     -F '}
+                      <C t="green">curl</C>{' -X POST https://cats-dogs-api-vkit.onrender.com/predict \\\n     -F '}
                       <C t="yellow">"file=@my_dog.jpg"</C>
                       {'\n\n'}
                       <C t="muted"># Python requests{'\n'}</C>
@@ -212,7 +212,7 @@ export default function ApiDocs() {
                       {'res = requests.'}
                       <C t="green">post</C>
                       {'(\n    '}
-                      <C t="yellow">"http://localhost:5000/predict"</C>
+                      <C t="yellow">"https://cats-dogs-api-vkit.onrender.com/predict"</C>
                       {',\n    files={'}
                       <C t="yellow">"file"</C>
                       {': '}
@@ -280,11 +280,11 @@ export default function ApiDocs() {
               </div>
               <div className="endpoint-body">
                 <RequestResponseBlock
-                  requestText={`curl -X POST http://localhost:5000/reload`}
+                  requestText={`curl -X POST https://cats-dogs-api-vkit.onrender.com/reload`}
                   requestChildren={
                     <>
                       <C t="muted"># cURL{'\n'}</C>
-                      <C t="green">curl</C>{' -X POST http://localhost:5000/reload'}
+                      <C t="green">curl</C>{' -X POST https://cats-dogs-api-vkit.onrender.com/reload'}
                     </>
                   }
                   responseChildren={
