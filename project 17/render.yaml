@@ -8,3 +8,11 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+
+  - type: cron
+    name: cats-dogs-api-keepalive
+    runtime: python
+    rootDir: project 17
+    buildCommand: pip install requests
+    schedule: "*/10 * * * *"
+    startCommand: python -c "import requests; requests.get('https://cats-dogs-api-vkit.onrender.com/health', timeout=60)"
