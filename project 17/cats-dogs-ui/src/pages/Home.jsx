@@ -76,7 +76,7 @@ export default function Home() {
 
             <p className="hero-desc">
               Upload any image and our EfficientNetB4 model will classify it in
-              under a second with over 99% accuracy, powered by 3-phase
+              under a second with 97.92% accuracy, powered by 3-phase
               transfer learning on ImageNet.
             </p>
 
@@ -143,7 +143,7 @@ export default function Home() {
         <div className="stats-row">
           <StatCard
             iconPath={<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>}
-            value={99}
+            value={97.92}
             suffix="%+"
             label="Final Accuracy"
             accent
@@ -194,7 +194,7 @@ export default function Home() {
               </div>
               <h3>High Accuracy</h3>
               <p>
-                99%+ accuracy achieved through 3-phase fine-tuning of
+                97.92% accuracy achieved through 3-phase fine-tuning of
                 EfficientNetB4 pretrained on ImageNet&apos;s 1.4M images.
               </p>
             </div>

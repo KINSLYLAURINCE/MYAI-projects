@@ -1,5 +1,19 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { useEffect } from 'react'
 import './App.css'
+
+const API_BASE = 'https://cats-dogs-api-vkit.onrender.com'
+const PING_INTERVAL = 10 * 60 * 1000  // 10 minutes
+
+function KeepAlive() {
+  useEffect(() => {
+    const ping = () => fetch(`${API_BASE}/health`).catch(() => {})
+    ping()
+    const id = setInterval(ping, PING_INTERVAL)
+    return () => clearInterval(id)
+  }, [])
+  return null
+}
 import Navbar    from './components/Navbar'
 import MobileBar from './components/MobileBar'
 import Home      from './pages/Home'
@@ -25,7 +39,7 @@ function Footer() {
           </div>
           <p className="footer-desc">
             A high-accuracy deep learning classifier built with EfficientNetB4
-            and 3-phase transfer learning. Achieves 99%+ accuracy on the
+            and 3-phase transfer learning. Achieves 97.92% accuracy on the
             cats vs dogs classification task.
           </p>
           <div className="footer-credit">
@@ -67,7 +81,7 @@ function Footer() {
             <span className="chip">Transfer Learning</span>
             <span className="chip">3-Phase Fine-Tuning</span>
             <span className="chip">TTA x5</span>
-            <span className="chip">99%+ Accuracy</span>
+            <span className="chip">97.92% Accuracy</span>
           </div>
         </div>
       </div>
@@ -85,6 +99,7 @@ function Footer() {
 export default function App() {
   return (
     <BrowserRouter>
+      <KeepAlive />
       <Navbar />
       <Routes>
         <Route path="/"         element={<Home />} />

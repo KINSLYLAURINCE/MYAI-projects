@@ -52,7 +52,7 @@ export default function About() {
             <div className="metric-list">
               <div className="metric-row">
                 <span className="metric-key">Final Accuracy</span>
-                <span className="metric-val accent">99%+</span>
+                <span className="metric-val accent">97.92%</span>
               </div>
               <div className="metric-row">
                 <span className="metric-key">Starting Accuracy</span>
@@ -137,8 +137,8 @@ export default function About() {
                     224x224 input, 3-phase progressive training, TTA x5, deeper head.
                   </div>
                   <div className="tl-acc-row">
-                    <span className="tl-acc">99%+</span>
-                    <AnimatedBar pct={99} />
+                    <span className="tl-acc">97.92%</span>
+                    <AnimatedBar pct={97.92} />
                   </div>
                 </div>
               </div>
