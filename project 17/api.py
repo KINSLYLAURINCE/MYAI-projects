@@ -1,23 +1,22 @@
 import os
 import io
-import time
-import threading
 import numpy as np
 from PIL import Image
 
-import tensorflow as tf
-from tensorflow import keras
+try:
+    import tflite_runtime.interpreter as tflite
+except ImportError:
+    import tensorflow.lite as tflite
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, 'cats_dogs_model.keras')
-IMG_SIZE   = (160, 160)
-WATCH_INTERVAL = 10
-PORT = int(os.environ.get("PORT", 5000))
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH  = os.path.join(BASE_DIR, 'cats_dogs_model.tflite')
+IMG_SIZE    = (160, 160)
+PORT        = int(os.environ.get("PORT", 5000))
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -34,57 +33,41 @@ app.add_middleware(
 )
 
 state = {
-    "model":          None,
-    "model_loaded":   False,
-    "model_modified": None,
-    "status":         "Model not loaded yet."
+    "interpreter": None,
+    "input_index":  None,
+    "output_index": None,
+    "model_loaded": False,
+    "status":       "Model not loaded yet."
 }
 
-# ── Model loader ──────────────────────────────────────────────────────────────
+# ── Load TFLite model ─────────────────────────────────────────────────────────
 def load_model():
     try:
-        print(f"\n[API] Loading model from {MODEL_PATH} ...")
-        state["model"]          = keras.models.load_model(MODEL_PATH)
-        state["model_loaded"]   = True
-        state["model_modified"] = os.path.getmtime(MODEL_PATH)
-        state["status"]         = "Model loaded and ready."
-        print("[API] Model loaded successfully.")
+        print(f"[API] Loading TFLite model from {MODEL_PATH} ...")
+        interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+        interpreter.allocate_tensors()
+        state["interpreter"]  = interpreter
+        state["input_index"]  = interpreter.get_input_details()[0]["index"]
+        state["output_index"] = interpreter.get_output_details()[0]["index"]
+        state["model_loaded"] = True
+        state["status"]       = "Model loaded and ready."
+        print("[API] TFLite model loaded successfully.")
     except Exception as e:
         state["model_loaded"] = False
         state["status"]       = f"Failed to load model: {str(e)}"
-        print(f"[API] ERROR loading model: {e}")
+        print(f"[API] ERROR: {e}")
 
-# ── Background watcher ────────────────────────────────────────────────────────
-def model_watcher():
-    print("[Watcher] Started — watching for model file...")
-    while True:
-        if os.path.exists(MODEL_PATH):
-            current_mtime = os.path.getmtime(MODEL_PATH)
-            if not state["model_loaded"]:
-                print("[Watcher] Model file detected — loading...")
-                load_model()
-            elif current_mtime != state["model_modified"]:
-                print("[Watcher] Model file updated — reloading...")
-                load_model()
-        else:
-            state["status"] = "Model file not found."
-            print(f"[Watcher] Model not found, checking again in {WATCH_INTERVAL}s...")
-        time.sleep(WATCH_INTERVAL)
+# ── Startup ───────────────────────────────────────────────────────────────────
+@app.on_event("startup")
+def startup():
+    load_model()
 
-# ── Image preprocessor ────────────────────────────────────────────────────────
+# ── Preprocessor ─────────────────────────────────────────────────────────────
 def preprocess(image_bytes: bytes) -> np.ndarray:
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img = img.resize(IMG_SIZE)
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)
-
-# ── Startup ───────────────────────────────────────────────────────────────────
-@app.on_event("startup")
-def startup():
-    if os.path.exists(MODEL_PATH):
-        load_model()
-    watcher_thread = threading.Thread(target=model_watcher, daemon=True)
-    watcher_thread.start()
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 @app.get("/health")
@@ -99,7 +82,7 @@ def health():
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     if not state["model_loaded"]:
-        raise HTTPException(status_code=503, detail="Model is not ready yet. Check /health for status.")
+        raise HTTPException(status_code=503, detail="Model not ready. Check /health.")
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail=f"File must be an image. Got: {file.content_type}")
 
@@ -109,21 +92,23 @@ async def predict(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read image: {str(e)}")
 
-    prediction = state["model"].predict(tensor, verbose=0)[0][0]
+    interp = state["interpreter"]
+    interp.set_tensor(state["input_index"], tensor)
+    interp.invoke()
+    prediction = float(interp.get_tensor(state["output_index"])[0][0])
+
     label      = "Dog" if prediction > 0.5 else "Cat"
-    confidence = float(prediction) if label == "Dog" else float(1 - prediction)
+    confidence = prediction if label == "Dog" else 1 - prediction
 
     return JSONResponse({
         "prediction":     label,
         "confidence":     f"{confidence * 100:.2f}%",
-        "raw_score":      round(float(prediction), 6),
+        "raw_score":      round(prediction, 6),
         "interpretation": "score > 0.5 = Dog, score < 0.5 = Cat"
     })
 
 @app.post("/reload")
 def reload_model():
-    if not os.path.exists(MODEL_PATH):
-        raise HTTPException(status_code=404, detail="Model file not found on disk.")
     load_model()
     return {"status": state["status"], "loaded": state["model_loaded"]}
 
