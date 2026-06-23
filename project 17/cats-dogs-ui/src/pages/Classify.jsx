@@ -49,18 +49,21 @@ export default function Classify() {
   const inputRef = useRef(null)
 
   useEffect(() => {
+    let active = true
     const check = async () => {
+      if (!active) return
+      setApiStatus('checking')
       try {
-        const res  = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(60000) })
+        const res  = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(90000) })
         const data = await res.json()
-        setApiStatus(data.model_loaded ? 'online' : 'offline')
+        if (active) setApiStatus(data.model_loaded ? 'online' : 'offline')
       } catch {
-        setApiStatus('offline')
+        if (active) setApiStatus('offline')
       }
     }
     check()
-    const id = setInterval(check, 8000)
-    return () => clearInterval(id)
+    const id = setInterval(check, 120000)
+    return () => { active = false; clearInterval(id) }
   }, [])
 
   const handleFile = useCallback((f) => {
@@ -124,9 +127,9 @@ export default function Classify() {
   const catPct      = cls === 'cat' ? confidence : 100 - confidence
 
   const statusLabel = {
-    checking: 'Connecting to API...',
+    checking: 'Waking up API — this may take up to 60s...',
     online:   'API online — model ready',
-    offline:  'API offline or model still loading',
+    offline:  'API offline — please refresh the page',
   }[apiStatus]
 
   return (
